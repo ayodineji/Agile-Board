@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agile Feature Board</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1f2e;
+            color: #e2e8f0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .auth-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .auth-card {
+            background: #2d3748;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            width: 400px;
+            text-align: center;
+        }
+
+        .auth-card h1 {
+            margin-bottom: 30px;
+            color: #e2e8f0;
+            font-size: 28px;
+        }
+
+        .auth-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .auth-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #4a5568;
+            border-radius: 6px;
+            background: #1a202c;
+            color: #e2e8f0;
+            font-size: 16px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .auth-input::placeholder {
+            color: #a0aec0;
+            text-transform: none;
+            letter-spacing: normal;
+        }
+
+        .app-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            display: none;
+        }
+
+        .app-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .app-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .session-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 16px;
+            border-radius: 6px;
+            color: white;
+            font-size: 14px;
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .participants-info {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .interaction-hint {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.1);
+            padding: 6px 12px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+            margin-right: 10px;
+            white-space: nowrap;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-primary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-primary:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #38a169;
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #e53e3e;
+        }
+
+        .btn-large {
+            padding: 12px 24px;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        .board-wrapper {
+            flex: 1;
+            overflow: auto;
+            padding: 20px;
+        }
+
+        .board-grid {
+            display: grid;
+            grid-template-columns: 150px repeat(var(--sprint-count, 8), 1fr);
+            grid-template-rows: 60px repeat(var(--team-count, 6), minmax(120px, 1fr));
+            gap: 1px;
+            background: #2d3748;
+            border: 1px solid #2d3748;
+            min-width: 1200px;
+        }
+
+        .header-cell {
+            background: #2d3748;
+            padding: 15px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #e2e8f0;
+            font-size: 14px;
+            border-right: 1px solid #4a5568;
+            position: relative;
+        }
+
+        .header-cell.corner {
+            background: #1a202c;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #a0aec0;
+        }
+
+        .header-cell .remove-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #f56565;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            display: none;
+        }
+
+        .header-cell:hover .remove-btn {
+            display: block;
+        }
+
+        .sprint-header {
+            background: linear-gradient(180deg, #4a5568 0%, #2d3748 100%);
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .team-header {
+            background: linear-gradient(90deg, #4a5568 0%, #2d3748 100%);
+            writing-mode: horizontal-tb;
+            text-align: left;
+            position: sticky;
+            left: 0;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            padding-left: 20px;
+            font-size: 13px;
+        }
+
+        .grid-cell {
+            background: #1a202c;
+            border: 1px solid #2d3748;
+            padding: 10px;
+            min-height: 120px;
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .grid-cell.drag-over {
+            background: rgba(72, 187, 120, 0.1);
+            border: 2px dashed #48bb78;
+        }
+
+        .card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+            cursor: move;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+            position: relative;
+            color: white;
+            font-size: 13px;
+        }
+
+        .card:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .card.dragging {
+            opacity: 0.5;
+            transform: rotate(3deg);
+        }
+
+        .card-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 12px;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 3px;
+            transition: background-color 0.2s ease;
+        }
+
+        .card-title:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+        }
+
+        .card-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 10px;
+            margin-top: 5px;
+            opacity: 0.9;
+        }
+
+        .card-id {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+
+        .dependency-dot {
+            width: 8px;
+            height: 8px;
+            background: #dc2626;
+            border: 1px solid #b91c1c;
+            border-radius: 50%;
+            position: absolute;
+            cursor: pointer;
+            z-index: 20;
+            display: none;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .dependency-dot:hover {
+            transform: scale(1.3);
+            background: #b91c1c;
+        }
+
+        .dependency-dot.start {
+            right: -4px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .dependency-dot.end {
+            left: -4px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .dependency-mode .dependency-dot {
+            display: block !important;
+        }
+
+        .card.selected-for-dependency {
+            box-shadow: 0 0 20px #dc2626 !important;
+            transform: scale(1.05);
+        }
+
+        svg.dependency-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        svg.dependency-layer path {
+            pointer-events: auto;
+            transition: stroke-width 0.2s ease;
+        }
+
+        svg.dependency-layer path:hover {
+            stroke-width: 4;
+            opacity: 1;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: #2d3748;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 12px;
+            width: 500px;
+            max-width: 90vw;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            color: #e2e8f0;
+        }
+
+        .info-modal {
+            width: 700px;
+            max-width: 95vw;
+            padding: 40px;
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+            border: 2px solid #4a5568;
+            animation: modalSlideIn 0.3s ease-out;
+            transform-origin: center;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8) translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .info-modal h2 {
+            font-size: 32px;
+            margin-bottom: 30px;
+            text-align: center;
+            color: #e2e8f0;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .info-section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .info-label {
+            font-size: 16px;
+            font-weight: bold;
+            color: #a0aec0;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .info-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: #e2e8f0;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        .info-value.feature-id {
+            color: #81c995;
+            font-family: monospace;
+        }
+
+        .info-value.feature-title {
+            color: #667eea;
+            font-size: 28px;
+        }
+
+        .info-value.team-name {
+            color: #f687b3;
+        }
+
+        .info-value.sprint-name {
+            color: #4299e1;
+        }
+
+        .info-value.assignee {
+            color: #ed8936;
+        }
+
+        .info-value.relationship {
+            color: #9f7aea;
+            font-style: italic;
+        }
+
+        .info-value.additional-info {
+            color: #e2e8f0;
+            font-size: 20px;
+            font-style: italic;
+            min-height: 60px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 6px;
+        }
+
+        .info-value.description {
+            color: #e2e8f0;
+            font-size: 20px;
+            min-height: 60px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 6px;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 20px;
+            color: #e2e8f0;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #a0aec0;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid #4a5568;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #1a202c;
+            color: #e2e8f0;
+            resize: vertical;
+        }
+
+        .form-group textarea {
+            min-height: 180px;
+        }
+
+        /* Larger text areas for feature and dependency descriptions */
+        #featureDescription,
+        #dependencyAdditionalInfo {
+            min-height: 220px;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .team-dev { background: linear-gradient(135deg, #667eea, #5a5fd8); }
+        .team-design { background: linear-gradient(135deg, #f687b3, #d53f8c); }
+        .team-qa { background: linear-gradient(135deg, #48bb78, #38a169); }
+        .team-devops { background: linear-gradient(135deg, #ed8936, #dd6b20); }
+        .team-product { background: linear-gradient(135deg, #9f7aea, #805ad5); }
+        .team-marketing { background: linear-gradient(135deg, #4299e1, #3182ce); }
+
+        .status-indicator {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #48bb78;
+            animation: pulse 2s infinite;
+        }
+
+        .online-indicator {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #48bb78;
+            display: none;
+        }
+
+        .online-indicator.active {
+            display: block;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .management-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .error-message {
+            background: #f56565;
+            color: white;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Authentication Screen -->
+    <div id="authContainer" class="auth-container">
+        <div class="auth-card">
+            <h1>🚀 Agile Feature Board</h1>
+            <div class="error-message" id="authError"></div>
+            <div class="auth-buttons">
+                <button class="btn btn-primary btn-large" onclick="createSession()">Create New Session</button>
+                <div style="margin: 20px 0; color: #a0aec0;">OR</div>
+                <input type="text" id="accessCode" class="auth-input" placeholder="Enter Access Code" maxlength="6">
+                <button class="btn btn-secondary btn-large" onclick="joinSession()">Join Session</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="appContainer" class="app-container">
+        <div class="app-header">
+            <div class="app-title">🚀 Agile Feature Board</div>
+            <div class="session-info">
+                Session: <span id="sessionCode">Loading...</span>
+                <div class="participants-info">
+                    <span id="participantCount">1</span> user(s) viewing board
+                </div>
+                <div class="online-indicator active" id="onlineIndicator"></div>
+            </div>
+            <div class="controls">
+                <div class="interaction-hint">💡 Click features/dependencies to view info • Double-click features to edit</div>
+                <button class="btn btn-primary" onclick="addNewFeature()">+ Add Feature</button>
+                <button class="btn btn-secondary" onclick="toggleDependencyMode()">🔗 Dependencies</button>
+                <button class="btn btn-danger" onclick="clearDependencies()">Clear Lines</button>
+                <button class="btn btn-primary" onclick="showManagement()">⚙️ Manage</button>
+            </div>
+        </div>
+
+        <svg class="dependency-layer" id="dependencySvg"></svg>
+
+        <div class="board-wrapper">
+            <div class="board-grid" id="board">
+                <!-- Dynamic content will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature Modal -->
+    <div id="featureModal" class="modal">
+        <div class="modal-content">
+            <h2 id="featureModalTitle">Add New Feature</h2>
+            <div class="form-group">
+                <label>Feature Title</label>
+                <input type="text" id="featureTitle" placeholder="Enter feature title">
+            </div>
+            <div class="form-group">
+                <label>Team</label>
+                <select id="featureTeam">
+                    <!-- Dynamic options -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Sprint</label>
+                <select id="featureSprint">
+                    <!-- Dynamic options -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Assignee</label>
+                <input type="text" id="featureAssignee" placeholder="Enter assignee name">
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="featureDescription" placeholder="Enter detailed description..."></textarea>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="saveFeature()">Save Feature</button>
+                <button class="btn btn-primary" onclick="closeFeatureModal()">Cancel</button>
+                <button class="btn btn-danger" id="deleteFeatureBtn" onclick="deleteFeature()" style="display: none;">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dependency Info Display Modal -->
+    <div id="dependencyInfoModal" class="modal">
+        <div class="modal-content info-modal">
+            <h2>📎 Dependency Information</h2>
+            <div class="info-section">
+                <div class="info-label">From Feature:</div>
+                <div class="info-value" id="infoFromFeature"></div>
+            </div>
+            <div class="info-section">
+                <div class="info-label">To Feature:</div>
+                <div class="info-value" id="infoToFeature"></div>
+            </div>
+            <div class="info-section">
+                <div class="info-label">Relationship:</div>
+                <div class="info-value relationship" id="infoRelationship"></div>
+            </div>
+            <div class="info-section">
+                <div class="info-label">Additional Information:</div>
+                <div class="info-value additional-info" id="infoAdditionalInfo"></div>
+            </div>
+            <div style="display: flex; gap: 15px; margin-top: 30px; justify-content: center;">
+                <button class="btn btn-secondary btn-large" onclick="editDependencyFromInfo()">✏️ Edit</button>
+                <button class="btn btn-primary btn-large" onclick="closeDependencyInfoModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature Info Display Modal -->
+    <div id="featureInfoModal" class="modal">
+        <div class="modal-content info-modal">
+            <h2>🎯 Feature Information</h2>
+            <div class="info-section">
+                <div class="info-label">Feature ID:</div>
+                <div class="info-value feature-id" id="infoFeatureId"></div>
+            </div>
+            <div class="info-section">
+                <div class="info-label">Title:</div>
+                <div class="info-value feature-title" id="infoFeatureTitle"></div>
+            </div>
+            <div class="info-section">
+                <div class="info-label">Team:</div>
+                <div class="info-value team-name" id="infoFeatureTeam"></div>
+            </div>
+            <div class="info-section">
+                <div class="info-label">Sprint:</div>
+                <div class="info-value sprint-name" id="infoFeatureSprint"></div>
+            </div>
+            <div class="info-section">
+                <div class="info-label">Assignee:</div>
+                <div class="info-value assignee" id="infoFeatureAssignee"></div>
+            </div>
+            <div class="info-section">
+                <div class="info-label">Description:</div>
+                <div class="info-value description" id="infoFeatureDescription"></div>
+            </div>
+            <div style="display: flex; gap: 15px; margin-top: 30px; justify-content: center;">
+                <button class="btn btn-secondary btn-large" onclick="editFeatureFromInfo()">✏️ Edit</button>
+                <button class="btn btn-primary btn-large" onclick="closeFeatureInfoModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dependency Modal -->
+    <div id="dependencyModal" class="modal">
+        <div class="modal-content">
+            <h2 id="dependencyModalTitle">Dependency Relationship</h2>
+            <div class="form-group">
+                <label>From Feature</label>
+                <input type="text" id="dependencyFromFeature" readonly>
+            </div>
+            <div class="form-group">
+                <label>To Feature</label>
+                <input type="text" id="dependencyToFeature" readonly>
+            </div>
+            <div class="form-group">
+                <label>Relationship Type</label>
+                <select id="dependencyRelationship">
+                    <option value="depends on">Depends On</option>
+                    <option value="blocks">Blocks</option>
+                    <option value="enables">Enables</option>
+                    <option value="relates to">Relates To</option>
+                    <option value="prerequisite for">Prerequisite For</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Additional Information</label>
+                <textarea id="dependencyAdditionalInfo" placeholder="Enter additional details about this dependency..."></textarea>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="saveDependency()">Save Dependency</button>
+                <button class="btn btn-primary" onclick="closeDependencyModal()">Cancel</button>
+                <button class="btn btn-danger" id="deleteDependencyBtn" onclick="deleteDependency()" style="display: none;">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Management Modal -->
+    <div id="managementModal" class="modal">
+        <div class="modal-content">
+            <h2>Board Management</h2>
+            <div class="management-controls">
+                <button class="btn btn-secondary" onclick="addTeam()">+ Team</button>
+                <button class="btn btn-secondary" onclick="addSprint()">+ Sprint</button>
+            </div>
+            
+            <h3>Teams</h3>
+            <div id="teamsList"></div>
+            
+            <h3>Sprints</h3>
+            <div id="sprintsList"></div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-primary" onclick="closeManagementModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        let socket;
+        let sessionId;
+        let sessionCode;
+        let boardData = {
+            teams: [],
+            sprints: [],
+            features: [],
+            dependencies: [],
+            nextFeatureId: 1
+        };
+        let dependencyMode = false;
+        let selectedCardForDependency = null;
+        let currentEditingFeature = null;
+        let currentEditingDependency = null;
+
+        // Socket initialization - connect immediately when page loads
+        function initializeSocketEarly() {
+            socket = io();
+            
+            socket.on('connect', () => {
+                console.log('Connected to server');
+            });
+            
+            socket.on('global-participant-count', (count) => {
+                document.getElementById('participantCount').textContent = count;
+            });
+            
+            socket.on('disconnect', () => {
+                console.log('Disconnected from server');
+            });
+        }
+
+        // Initialize socket connection as soon as page loads
+        window.addEventListener('load', initializeSocketEarly);
+
+        // Authentication functions
+        async function createSession() {
+            try {
+                const response = await fetch('/api/create-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                sessionId = data.sessionId;
+                sessionCode = data.code;
+                
+                document.getElementById('sessionCode').textContent = sessionCode;
+                document.getElementById('authContainer').style.display = 'none';
+                document.getElementById('appContainer').style.display = 'flex';
+                
+                initializeSocket();
+            } catch (error) {
+                showAuthError('Failed to create session. Please try again.');
+            }
+        }
+
+        async function joinSession() {
+            const code = document.getElementById('accessCode').value.trim();
+            if (!code) {
+                showAuthError('Please enter an access code');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/join-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    showAuthError(error.error);
+                    return;
+                }
+                
+                const data = await response.json();
+                sessionId = data.sessionId;
+                sessionCode = code.toUpperCase();
+                boardData = data.boardData;
+                
+                document.getElementById('sessionCode').textContent = sessionCode;
+                document.getElementById('authContainer').style.display = 'none';
+                document.getElementById('appContainer').style.display = 'flex';
+                
+                initializeSocket();
+                renderBoard();
+            } catch (error) {
+                showAuthError('Failed to join session. Please try again.');
+            }
+        }
+
+        function showAuthError(message) {
+            const errorEl = document.getElementById('authError');
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+            setTimeout(() => {
+                errorEl.style.display = 'none';
+            }, 5000);
+        }
+
+        // Socket initialization
+        function initializeSocket() {
+            // If socket is already initialized, just join the session
+            if (!socket) {
+                socket = io();
+            }
+            
+            socket.emit('join-session', sessionId);
+            
+            socket.on('board-data', (data) => {
+                boardData = data;
+                renderBoard();
+            });
+            
+            socket.on('feature-created', (feature) => {
+                boardData.features.push(feature);
+                renderBoard();
+            });
+            
+            socket.on('feature-updated', (feature) => {
+                const index = boardData.features.findIndex(f => f.id === feature.id);
+                if (index !== -1) {
+                    boardData.features[index] = { ...boardData.features[index], ...feature };
+                    renderBoard();
+                }
+            });
+            
+            socket.on('feature-moved', (data) => {
+                const feature = boardData.features.find(f => f.id === data.featureId);
+                if (feature) {
+                    feature.team = data.team;
+                    feature.sprint = data.sprint;
+                    renderBoard();
+                }
+            });
+            
+            socket.on('dependencies-updated', (dependencies) => {
+                boardData.dependencies = dependencies;
+                drawDependencies();
+            });
+            
+            socket.on('team-added', (team) => {
+                boardData.teams.push(team);
+                renderBoard();
+            });
+            
+            socket.on('sprint-added', (sprint) => {
+                boardData.sprints.push(sprint);
+                renderBoard();
+            });
+            
+            socket.on('user-joined', (data) => {
+                console.log('User joined:', data.userId);
+            });
+            
+            socket.on('user-left', (data) => {
+                console.log('User left:', data.userId);
+            });
+            
+            socket.on('participant-count', (count) => {
+                // This is session-specific count, but we'll use global count instead
+                // Keep this for potential future use
+            });
+            
+            socket.on('global-participant-count', (count) => {
+                document.getElementById('participantCount').textContent = count;
+            });
+            
+            socket.on('error', (error) => {
+                alert('Error: ' + error.message);
+            });
+        }
+
+        // Continue with remaining JavaScript functions in next file...
+    </script>
+    <script src="js/board.js"></script>
+</body>
+</html>

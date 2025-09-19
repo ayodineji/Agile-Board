@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Department Sprint Board</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1f2e;
+            color: #e2e8f0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .app-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .app-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-primary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-primary:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #38a169;
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #e53e3e;
+        }
+
+        .board-wrapper {
+            flex: 1;
+            overflow: auto;
+            padding: 20px;
+        }
+
+        .board-grid {
+            display: grid;
+            grid-template-columns: 150px repeat(8, 1fr);
+            grid-template-rows: 60px repeat(6, minmax(120px, 1fr));
+            gap: 1px;
+            background: #2d3748;
+            border: 1px solid #2d3748;
+            min-width: 1200px;
+        }
+
+        .header-cell {
+            background: #2d3748;
+            padding: 15px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #e2e8f0;
+            font-size: 14px;
+            border-right: 1px solid #4a5568;
+        }
+
+        .header-cell.corner {
+            background: #1a202c;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #a0aec0;
+        }
+
+        .sprint-header {
+            background: linear-gradient(180deg, #4a5568 0%, #2d3748 100%);
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .department-header {
+            background: linear-gradient(90deg, #4a5568 0%, #2d3748 100%);
+            writing-mode: horizontal-tb;
+            text-align: left;
+            position: sticky;
+            left: 0;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            padding-left: 20px;
+            font-size: 13px;
+        }
+
+        .grid-cell {
+            background: #1a202c;
+            border: 1px solid #2d3748;
+            padding: 10px;
+            min-height: 120px;
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .grid-cell.drag-over {
+            background: rgba(72, 187, 120, 0.1);
+            border: 2px dashed #48bb78;
+        }
+
+        .card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+            cursor: move;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+            position: relative;
+            color: white;
+            font-size: 13px;
+        }
+
+        .card:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .card.dragging {
+            opacity: 0.5;
+            transform: rotate(3deg);
+        }
+
+        .card-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 12px;
+        }
+
+        .card-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 10px;
+            margin-top: 5px;
+            opacity: 0.9;
+        }
+
+        .card-id {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+
+        .dependency-dot {
+            width: 12px;
+            height: 12px;
+            background: #fbbf24;
+            border: 2px solid #f59e0b;
+            border-radius: 50%;
+            position: absolute;
+            cursor: pointer;
+            z-index: 20;
+            display: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .dependency-dot:hover {
+            transform: scale(1.3);
+            background: #f59e0b;
+        }
+
+        .dependency-dot.start {
+            right: -6px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .dependency-dot.end {
+            left: -6px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .dependency-mode .dependency-dot {
+            display: block !important;
+        }
+
+        .card.selected-for-dependency {
+            box-shadow: 0 0 20px #fbbf24 !important;
+            transform: scale(1.05);
+        }
+
+        svg.dependency-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: #2d3748;
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 12px;
+            width: 400px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            color: #e2e8f0;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 20px;
+            color: #e2e8f0;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #a0aec0;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid #4a5568;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #1a202c;
+            color: #e2e8f0;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .department-dev { background: linear-gradient(135deg, #667eea, #5a5fd8); }
+        .department-design { background: linear-gradient(135deg, #f687b3, #d53f8c); }
+        .department-qa { background: linear-gradient(135deg, #48bb78, #38a169); }
+        .department-devops { background: linear-gradient(135deg, #ed8936, #dd6b20); }
+        .department-product { background: linear-gradient(135deg, #9f7aea, #805ad5); }
+        .department-marketing { background: linear-gradient(135deg, #4299e1, #3182ce); }
+
+        .status-indicator {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #48bb78;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="app-header">
+            <div class="app-title">🚀 Agile PI Board</div>
+            <div class="controls">
+                <button class="btn btn-primary" onclick="addNewCard()">+ Add Task</button>
+                <button class="btn btn-secondary" onclick="toggleDependencyMode()">🔗 Dependencies</button>
+                <button class="btn btn-danger" onclick="clearDependencies()">Clear Lines</button>
+            </div>
+        </div>
+
+        <svg class="dependency-layer" id="dependencySvg"></svg>
+
+        <div class="board-wrapper">
+            <div class="board-grid" id="board">
+                <!-- Header Row -->
+                <div class="header-cell corner">Departments</div>
+                <div class="header-cell sprint-header">Sprint 1</div>
+                <div class="header-cell sprint-header">Sprint 2</div>
+                <div class="header-cell sprint-header">Sprint 3</div>
+                <div class="header-cell sprint-header">Sprint 4</div>
+                <div class="header-cell sprint-header">Sprint 5</div>
+                <div class="header-cell sprint-header">Sprint 6</div>
+                <div class="header-cell sprint-header">Sprint 7</div>
+                <div class="header-cell sprint-header">Sprint 8</div>
+
+                <!-- Development Row -->
+                <div class="header-cell department-header">IT Devs</div>
+                <div class="grid-cell" data-dept="dev" data-sprint="1"></div>
+                <div class="grid-cell" data-dept="dev" data-sprint="2"></div>
+                <div class="grid-cell" data-dept="dev" data-sprint="3"></div>
+                <div class="grid-cell" data-dept="dev" data-sprint="4"></div>
+                <div class="grid-cell" data-dept="dev" data-sprint="5"></div>
+                <div class="grid-cell" data-dept="dev" data-sprint="6"></div>
+                <div class="grid-cell" data-dept="dev" data-sprint="7"></div>
+                <div class="grid-cell" data-dept="dev" data-sprint="8"></div>
+
+                <!-- Design Row -->
+                <div class="header-cell department-header">R&G</div>
+                <div class="grid-cell" data-dept="design" data-sprint="1"></div>
+                <div class="grid-cell" data-dept="design" data-sprint="2"></div>
+                <div class="grid-cell" data-dept="design" data-sprint="3"></div>
+                <div class="grid-cell" data-dept="design" data-sprint="4"></div>
+                <div class="grid-cell" data-dept="design" data-sprint="5"></div>
+                <div class="grid-cell" data-dept="design" data-sprint="6"></div>
+                <div class="grid-cell" data-dept="design" data-sprint="7"></div>
+                <div class="grid-cell" data-dept="design" data-sprint="8"></div>
+
+                <!-- QA Row -->
+                <div class="header-cell department-header">People Ops</div>
+                <div class="grid-cell" data-dept="qa" data-sprint="1"></div>
+                <div class="grid-cell" data-dept="qa" data-sprint="2"></div>
+                <div class="grid-cell" data-dept="qa" data-sprint="3"></div>
+                <div class="grid-cell" data-dept="qa" data-sprint="4"></div>
+                <div class="grid-cell" data-dept="qa" data-sprint="5"></div>
+                <div class="grid-cell" data-dept="qa" data-sprint="6"></div>
+                <div class="grid-cell" data-dept="qa" data-sprint="7"></div>
+                <div class="grid-cell" data-dept="qa" data-sprint="8"></div>
+
+                <!-- DevOps Row -->
+                <div class="header-cell department-header">Payments</div>
+                <div class="grid-cell" data-dept="devops" data-sprint="1"></div>
+                <div class="grid-cell" data-dept="devops" data-sprint="2"></div>
+                <div class="grid-cell" data-dept="devops" data-sprint="3"></div>
+                <div class="grid-cell" data-dept="devops" data-sprint="4"></div>
+                <div class="grid-cell" data-dept="devops" data-sprint="5"></div>
+                <div class="grid-cell" data-dept="devops" data-sprint="6"></div>
+                <div class="grid-cell" data-dept="devops" data-sprint="7"></div>
+                <div class="grid-cell" data-dept="devops" data-sprint="8"></div>
+
+                <!-- Product Row -->
+                <div class="header-cell department-header">Mortgage</div>
+                <div class="grid-cell" data-dept="product" data-sprint="1"></div>
+                <div class="grid-cell" data-dept="product" data-sprint="2"></div>
+                <div class="grid-cell" data-dept="product" data-sprint="3"></div>
+                <div class="grid-cell" data-dept="product" data-sprint="4"></div>
+                <div class="grid-cell" data-dept="product" data-sprint="5"></div>
+                <div class="grid-cell" data-dept="product" data-sprint="6"></div>
+                <div class="grid-cell" data-dept="product" data-sprint="7"></div>
+                <div class="grid-cell" data-dept="product" data-sprint="8"></div>
+
+                <!-- Marketing Row -->
+                <div class="header-cell department-header">other</div>
+                <div class="grid-cell" data-dept="marketing" data-sprint="1"></div>
+                <div class="grid-cell" data-dept="marketing" data-sprint="2"></div>
+                <div class="grid-cell" data-dept="marketing" data-sprint="3"></div>
+                <div class="grid-cell" data-dept="marketing" data-sprint="4"></div>
+                <div class="grid-cell" data-dept="marketing" data-sprint="5"></div>
+                <div class="grid-cell" data-dept="marketing" data-sprint="6"></div>
+                <div class="grid-cell" data-dept="marketing" data-sprint="7"></div>
+                <div class="grid-cell" data-dept="marketing" data-sprint="8"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="cardModal" class="modal">
+        <div class="modal-content">
+            <h2>Add New Task</h2>
+            <div class="form-group">
+                <label>Task Title</label>
+                <input type="text" id="cardTitle" placeholder="Enter task title">
+            </div>
+            <div class="form-group">
+                <label>Department</label>
+                <select id="cardDept">
+                    <option value="dev">Development</option>
+                    <option value="design">Design</option>
+                    <option value="qa">QA Testing</option>
+                    <option value="devops">DevOps</option>
+                    <option value="product">Product</option>
+                    <option value="marketing">Marketing</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Sprint</label>
+                <select id="cardSprint">
+                    <option value="1">Sprint 1</option>
+                    <option value="2">Sprint 2</option>
+                    <option value="3">Sprint 3</option>
+                    <option value="4">Sprint 4</option>
+                    <option value="5">Sprint 5</option>
+                    <option value="6">Sprint 6</option>
+                    <option value="7">Sprint 7</option>
+                    <option value="8">Sprint 8</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Assignee</label>
+                <input type="text" id="cardAssignee" placeholder="Enter assignee name">
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="createCard()">Create Task</button>
+                <button class="btn btn-primary" onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let cardIdCounter = 1;
+        let dependencyMode = false;
+        let selectedCardForDependency = null;
+        let dependencies = [];
+
+        // Sample initial tasks
+        const sampleTasks = [
+            { id: cardIdCounter++, title: "UI Mockups", dept: "design", sprint: "1", assignee: "Sarah" },
+            { id: cardIdCounter++, title: "Database Schema", dept: "dev", sprint: "1", assignee: "John" },
+            { id: cardIdCounter++, title: "API Development", dept: "dev", sprint: "2", assignee: "Mike" },
+            { id: cardIdCounter++, title: "Frontend Components", dept: "dev", sprint: "3", assignee: "Lisa" },
+            { id: cardIdCounter++, title: "Test Cases", dept: "qa", sprint: "3", assignee: "Tom" },
+            { id: cardIdCounter++, title: "CI/CD Pipeline", dept: "devops", sprint: "2", assignee: "Alex" },
+            { id: cardIdCounter++, title: "Product Roadmap", dept: "product", sprint: "1", assignee: "Emma" },
+            { id: cardIdCounter++, title: "Launch Campaign", dept: "marketing", sprint: "4", assignee: "David" },
+            { id: cardIdCounter++, title: "User Testing", dept: "qa", sprint: "4", assignee: "Amy" },
+            { id: cardIdCounter++, title: "Security Audit", dept: "devops", sprint: "5", assignee: "Ryan" }
+        ];
+
+        // Initialize board with sample tasks
+        function initBoard() {
+            sampleTasks.forEach(task => {
+                const card = createCardElement(task);
+                const targetCell = document.querySelector(`[data-dept="${task.dept}"][data-sprint="${task.sprint}"]`);
+                if (targetCell) {
+                    targetCell.appendChild(card);
+                }
+            });
+            
+            // Add sample dependencies
+            setTimeout(() => {
+                dependencies.push({ from: 1, to: 2 });
+                dependencies.push({ from: 2, to: 3 });
+                dependencies.push({ from: 3, to: 4 });
+                drawDependencies();
+            }, 100);
+        }
+
+        function createCardElement(taskData) {
+            const card = document.createElement('div');
+            card.className = `card department-${taskData.dept}`;
+            card.draggable = true;
+            card.dataset.cardId = taskData.id;
+            card.innerHTML = `
+                <div class="status-indicator"></div>
+                <div class="dependency-dot start" title="Click to connect"></div>
+                <div class="dependency-dot end" title="Click to connect"></div>
+                <div class="card-title">${taskData.title}</div>
+                <div class="card-meta">
+                    <span class="card-id">#${taskData.id}</span>
+                    <span>${taskData.assignee}</span>
+                </div>
+            `;
+            
+            // Add dependency click handlers directly
+            card.querySelector('.dependency-dot.start').addEventListener('click', (e) => handleDependencyClick(taskData.id, e));
+            card.querySelector('.dependency-dot.end').addEventListener('click', (e) => handleDependencyClick(taskData.id, e));
+            
+            // Drag events
+            card.addEventListener('dragstart', handleDragStart);
+            card.addEventListener('dragend', handleDragEnd);
+            
+            return card;
+        }
+
+        function handleDragStart(e) {
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', e.target.innerHTML);
+            e.dataTransfer.setData('cardId', e.target.dataset.cardId);
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            setTimeout(drawDependencies, 50);
+        }
+
+        // Grid cell drag events
+        document.querySelectorAll('.grid-cell').forEach(cell => {
+            cell.addEventListener('dragover', handleDragOver);
+            cell.addEventListener('drop', handleDrop);
+            cell.addEventListener('dragleave', handleDragLeave);
+        });
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            
+            const dragging = document.querySelector('.dragging');
+            if (dragging && e.currentTarget.classList.contains('grid-cell')) {
+                // Update card's department class
+                const newDept = e.currentTarget.dataset.dept;
+                dragging.className = `card department-${newDept}`;
+                e.currentTarget.appendChild(dragging);
+            }
+        }
+
+        function handleDragLeave(e) {
+            if (e.currentTarget.classList.contains('grid-cell')) {
+                e.currentTarget.classList.remove('drag-over');
+            }
+        }
+
+        function toggleDependencyMode() {
+            dependencyMode = !dependencyMode;
+            selectedCardForDependency = null;
+            
+            // Toggle button appearance
+            const btn = document.querySelector('.btn-secondary');
+            btn.style.background = dependencyMode ? '#fbbf24' : '#48bb78';
+            btn.textContent = dependencyMode ? '🔗 Exit Dependency Mode' : '🔗 Dependencies';
+            
+            // Toggle dependency mode class on body
+            if (dependencyMode) {
+                document.body.classList.add('dependency-mode');
+            } else {
+                document.body.classList.remove('dependency-mode');
+                // Clear any selected card styling
+                document.querySelectorAll('.card').forEach(card => {
+                    card.classList.remove('selected-for-dependency');
+                });
+            }
+        }
+
+        function handleDependencyClick(cardId, event) {
+            event.stopPropagation();
+            event.preventDefault();
+            
+            if (!dependencyMode) {
+                return;
+            }
+            
+            const card = document.querySelector(`[data-card-id="${cardId}"]`);
+            
+            if (!selectedCardForDependency) {
+                // Select first card
+                selectedCardForDependency = cardId;
+                card.classList.add('selected-for-dependency');
+            } else {
+                // Connect to second card
+                if (selectedCardForDependency !== cardId) {
+                    // Check if dependency already exists
+                    const exists = dependencies.some(d => 
+                        (d.from === selectedCardForDependency && d.to === cardId) ||
+                        (d.from === cardId && d.to === selectedCardForDependency)
+                    );
+                    
+                    if (!exists) {
+                        dependencies.push({ from: selectedCardForDependency, to: cardId });
+                        drawDependencies();
+                    }
+                }
+                
+                // Reset selection
+                document.querySelector(`[data-card-id="${selectedCardForDependency}"]`).classList.remove('selected-for-dependency');
+                selectedCardForDependency = null;
+            }
+        }
+
+        function drawDependencies() {
+            const svg = document.getElementById('dependencySvg');
+            svg.innerHTML = '';
+            
+            // Add defs for arrow marker
+            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+            marker.setAttribute('id', 'arrowhead');
+            marker.setAttribute('markerWidth', '10');
+            marker.setAttribute('markerHeight', '10');
+            marker.setAttribute('refX', '9');
+            marker.setAttribute('refY', '3');
+            marker.setAttribute('orient', 'auto');
+            
+            const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            polygon.setAttribute('points', '0 0, 10 3, 0 6');
+            polygon.setAttribute('fill', '#fbbf24');
+            
+            marker.appendChild(polygon);
+            defs.appendChild(marker);
+            svg.appendChild(defs);
+            
+            dependencies.forEach(dep => {
+                const fromCard = document.querySelector(`[data-card-id="${dep.from}"]`);
+                const toCard = document.querySelector(`[data-card-id="${dep.to}"]`);
+                
+                if (fromCard && toCard) {
+                    const fromRect = fromCard.getBoundingClientRect();
+                    const toRect = toCard.getBoundingClientRect();
+                    
+                    // Use viewport coordinates directly since SVG is fixed positioned
+                    const x1 = fromRect.right;
+                    const y1 = fromRect.top + fromRect.height / 2;
+                    const x2 = toRect.left;
+                    const y2 = toRect.top + toRect.height / 2;
+                    
+                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    
+                    // Create curved path
+                    const controlPoint1X = x1 + Math.abs(x2 - x1) * 0.3;
+                    const controlPoint2X = x2 - Math.abs(x2 - x1) * 0.3;
+                    
+                    path.setAttribute('d', `M ${x1} ${y1} C ${controlPoint1X} ${y1}, ${controlPoint2X} ${y2}, ${x2} ${y2}`);
+                    path.setAttribute('stroke', '#fbbf24');
+                    path.setAttribute('stroke-width', '3');
+                    path.setAttribute('fill', 'none');
+                    path.setAttribute('marker-end', 'url(#arrowhead)');
+                    path.setAttribute('opacity', '0.9');
+                    path.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))';
+                    
+                    svg.appendChild(path);
+                }
+            });
+        }
+
+        function clearDependencies() {
+            dependencies = [];
+            drawDependencies();
+        }
+
+        function addNewCard() {
+            document.getElementById('cardModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('cardModal').style.display = 'none';
+            // Clear form
+            document.getElementById('cardTitle').value = '';
+            document.getElementById('cardDept').value = 'dev';
+            document.getElementById('cardSprint').value = '1';
+            document.getElementById('cardAssignee').value = '';
+        }
+
+        function createCard() {
+            const title = document.getElementById('cardTitle').value;
+            const dept = document.getElementById('cardDept').value;
+            const sprint = document.getElementById('cardSprint').value;
+            const assignee = document.getElementById('cardAssignee').value;
+            
+            if (!title) {
+                alert('Task title is required');
+                return;
+            }
+            
+            const taskData = {
+                id: cardIdCounter++,
+                title,
+                dept,
+                sprint,
+                assignee: assignee || 'Unassigned'
+            };
+            
+            const card = createCardElement(taskData);
+            const targetCell = document.querySelector(`[data-dept="${dept}"][data-sprint="${sprint}"]`);
+            targetCell.appendChild(card);
+            closeModal();
+        }
+
+        // Handle scroll for dependency lines
+        document.querySelector('.board-wrapper').addEventListener('scroll', () => {
+            drawDependencies();
+        });
+
+        // Window resize handling
+        window.addEventListener('resize', drawDependencies);
+
+        // Initialize the board
+        initBoard();
+    </script>
+</body>
+</html>
