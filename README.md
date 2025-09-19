@@ -113,14 +113,6 @@ npm start
 # Access via http://YOUR_IP:3000
 ```
 
-### Cloud Deployment
-The application can be deployed to:
-- Heroku
-- Railway
-- Vercel
-- DigitalOcean
-- AWS
-- Any Node.js hosting platform
 
 ### Environment Variables
 - `PORT`: Server port (default: 3000)
