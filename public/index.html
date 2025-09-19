@@ -949,11 +949,27 @@
             socket.on('team-added', (team) => {
                 boardData.teams.push(team);
                 renderBoard();
+                renderManagementModal(); // Update management modal if open
+            });
+            
+            socket.on('team-removed', (teamId) => {
+                boardData.teams = boardData.teams.filter(d => d.id !== teamId);
+                boardData.features = boardData.features.filter(f => f.team !== teamId);
+                renderBoard();
+                renderManagementModal(); // Update management modal if open
             });
             
             socket.on('sprint-added', (sprint) => {
                 boardData.sprints.push(sprint);
                 renderBoard();
+                renderManagementModal(); // Update management modal if open
+            });
+            
+            socket.on('sprint-removed', (sprintId) => {
+                boardData.sprints = boardData.sprints.filter(s => s.id !== sprintId);
+                boardData.features = boardData.features.filter(f => f.sprint !== sprintId);
+                renderBoard();
+                renderManagementModal(); // Update management modal if open
             });
             
             socket.on('user-joined', (data) => {

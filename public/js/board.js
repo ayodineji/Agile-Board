@@ -411,7 +411,10 @@ function renderManagementModal() {
     boardData.teams.forEach(team => {
         const item = document.createElement('div');
         item.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #1a202c; margin: 5px 0; border-radius: 6px;';
-        item.innerHTML = `<span>${team.name}</span>`;
+        item.innerHTML = `
+            <span>${team.name}</span>
+            <button class="btn btn-danger" onclick="removeTeam('${team.id}')" style="padding: 4px 8px; font-size: 12px;">Remove</button>
+        `;
         teamsList.appendChild(item);
     });
     
@@ -420,7 +423,10 @@ function renderManagementModal() {
     boardData.sprints.forEach(sprint => {
         const item = document.createElement('div');
         item.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #1a202c; margin: 5px 0; border-radius: 6px;';
-        item.innerHTML = `<span>${sprint.name}</span>`;
+        item.innerHTML = `
+            <span>${sprint.name}</span>
+            <button class="btn btn-danger" onclick="removeSprint(${sprint.id})" style="padding: 4px 8px; font-size: 12px;">Remove</button>
+        `;
         sprintsList.appendChild(item);
     });
 }
@@ -435,9 +441,8 @@ function addTeam() {
             color: `team-${id}`
         };
         
-        boardData.teams.push(newTeam);
+        // Only emit to server, don't add locally - server will broadcast back
         socket.emit('add-team', newTeam);
-        renderManagementModal();
     }
 }
 
@@ -450,9 +455,42 @@ function addSprint() {
             name: name.trim()
         };
         
-        boardData.sprints.push(newSprint);
+        // Only emit to server, don't add locally - server will broadcast back
         socket.emit('add-sprint', newSprint);
-        renderManagementModal();
+    }
+}
+
+function removeTeam(teamId) {
+    const team = boardData.teams.find(d => d.id === teamId);
+    if (!team) return;
+    
+    const featuresInTeam = boardData.features.filter(f => f.team === teamId);
+    let confirmMessage = `Remove team "${team.name}"?`;
+    
+    if (featuresInTeam.length > 0) {
+        confirmMessage += `\n\nThis will also remove ${featuresInTeam.length} feature(s) in this team.`;
+    }
+    
+    if (confirm(confirmMessage)) {
+        // Only emit to server, don't remove locally - server will broadcast back
+        socket.emit('remove-team', teamId);
+    }
+}
+
+function removeSprint(sprintId) {
+    const sprint = boardData.sprints.find(s => s.id === sprintId);
+    if (!sprint) return;
+    
+    const featuresInSprint = boardData.features.filter(f => f.sprint === sprintId);
+    let confirmMessage = `Remove sprint "${sprint.name}"?`;
+    
+    if (featuresInSprint.length > 0) {
+        confirmMessage += `\n\nThis will also remove ${featuresInSprint.length} feature(s) in this sprint.`;
+    }
+    
+    if (confirm(confirmMessage)) {
+        // Only emit to server, don't remove locally - server will broadcast back
+        socket.emit('remove-sprint', sprintId);
     }
 }
 

@@ -364,6 +364,21 @@ io.on('connection', (socket) => {
     }
   });
   
+  socket.on('remove-team', (teamId) => {
+    if (socket.sessionId) {
+      const session = sessionData.sessions[socket.sessionId];
+      if (session) {
+        session.boardData.teams = session.boardData.teams.filter(d => d.id !== teamId);
+        // Also remove features in this team
+        session.boardData.features = session.boardData.features.filter(f => f.team !== teamId);
+        saveSessions(sessionData);
+        
+        // Broadcast to all users in session
+        io.to(socket.sessionId).emit('team-removed', teamId);
+      }
+    }
+  });
+  
   // Handle sprint management
   socket.on('add-sprint', (sprint) => {
     if (socket.sessionId) {
@@ -374,6 +389,21 @@ io.on('connection', (socket) => {
         
         // Broadcast to all users in session
         io.to(socket.sessionId).emit('sprint-added', sprint);
+      }
+    }
+  });
+  
+  socket.on('remove-sprint', (sprintId) => {
+    if (socket.sessionId) {
+      const session = sessionData.sessions[socket.sessionId];
+      if (session) {
+        session.boardData.sprints = session.boardData.sprints.filter(s => s.id !== sprintId);
+        // Also remove features in this sprint
+        session.boardData.features = session.boardData.features.filter(f => f.sprint !== sprintId);
+        saveSessions(sessionData);
+        
+        // Broadcast to all users in session
+        io.to(socket.sessionId).emit('sprint-removed', sprintId);
       }
     }
   });
